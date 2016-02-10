@@ -44,15 +44,13 @@ function uuid_entity_features_export_options($component) {
  */
 function uuid_entity_features_export($data, &$export, $module_name, $component) {
   $pipe = array();
-
   $export['dependencies']['uuid_entity_features'] = 'uuid_entity_features';
-
   $type = _uuid_entity_features_component_entity_type($component);
-
   $info = entity_get_info($type);
   $info['entity keys'] += array('module' => 'module', 'status' => 'status');
   $status_key = $info['entity keys']['status'];
   $module_key = $info['entity keys']['module'];
+
   if (!empty($info['bundle of'])) {
     $entity_info = entity_get_info($info['bundle of']);
     $bundle_key = $entity_info['bundle keys']['bundle'];
@@ -105,6 +103,14 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
   $info = entity_get_info($type);
   $output = array();
   $output[] = '  $items = array();';
+  //??
+  //
+  /*
+  $wtf = entity_get_uuid_by_id($type, $data);
+  dsm($type);
+  dsm($wtf);
+  */
+
   $ids = entity_get_id_by_uuid($type, $data);
   $ids_guids = array_flip($ids);
 
@@ -114,7 +120,8 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
   $module_key = $info['entity keys']['module'];
   $id_key = $info['entity keys']['id'];
 
-  foreach (entity_load($type, array_values($ids)) as $id => $entity) {
+  //foreach (entity_load($type, array_values($ids)) as $id => $entity) {
+  foreach (entity_uuid_load($type, $data) as $id => $entity) {
     $context = array(
       'module_name' => $module,
       'export' => $export,
@@ -130,6 +137,7 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
     );
     $export  = "  \$items['{$ids_guids[$id]}'] = entity_create('{$type}', ";
     $vars = get_object_vars($entity);
+    //TODO: do not need to unset id and revision id?
     unset($vars[$status_key], $vars[$status_key], $vars[$id_key], $vars['is_new']);
     if(!empty($info['entity keys']['revision'])) {
       unset($vars[$info['entity keys']['revision']]);
