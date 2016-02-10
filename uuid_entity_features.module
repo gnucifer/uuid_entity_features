@@ -1,0 +1,187 @@
+<?php
+
+define('UUID_ENTITY_FEATURES_REBUILD_CREATE_ONLY', 0);
+define('UUID_ENTITY_FEATURES_REBUILD_UPDATE_NON_EMPTY', 1);
+define('UUID_ENTITY_FEATURES_REBUILD_UPDATE', 2);
+define('UUID_ENTITY_FEATURES_REBUILD_REPLACE', 3);
+
+/**
+ * Implements hook_menu().
+ */
+function uuid_entity_features_menu() {
+  $items['admin/config/content/uuid_entity_features'] = array(
+    'access arguments' => array('administer site configuration'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uuid_entity_features_settings_form'),
+    'title' => 'UUID entities Features settings',
+    'description' => 'Configure the settings for UUID Entity Features Integration.',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_features_api().
+ */
+function uuid_entity_features_features_api() {
+  $components = array();
+  //TODO: refactor, array_intersect etc
+  $entity_info = entity_get_info();
+  $entities_settings = uuid_entity_features_entities_settings();
+  foreach($entities_settings as $type => $settings) {
+    if(
+      !empty($settings['enabled']) &&
+      _uuid_entity_features_compatible_entity_type($entity_info[$type])
+    ) {
+      $components['uuid_entity_' . $type] = array(
+        'name' => t('@label entity', array('@label' => $entity_info[$type]['label'])),
+        'feature_source' => TRUE,
+        'default_hook' => 'uuid_entity_default_' . $type,
+        'default_file' => FEATURES_DEFAULTS_INCLUDED,
+        'file' => drupal_get_path('module', 'uuid_entity_features') . '/includes/uuid_entity.features.inc',
+        'base' => 'uuid_entity',
+      );
+    }
+  }
+  return $components;
+}
+
+function uuid_entity_features_uuid_entity_features_export_render_node_entity_alter($node, $context) {
+  unset($node->translations);
+  unset($node->entity_translation_handler_id);
+  unset($node->rdf_mapping);
+  unset($node->created);
+  unset($node->changed);
+  unset($node->log);
+  unset($node->revision_timestamp);
+  unset($node->title_original);
+  unset($node->last_comment_timestamp);
+}
+
+function uuid_entity_features_init() {
+  //uuid_entity_features_entities_entity_info();
+}
+function uuid_entity_features_entities_entity_info() {
+  return array_filter(entity_get_info(), '_uuid_entity_features_compatible_entity_type');
+}
+//TODO: refactor?
+function _uuid_entity_features_compatible_entity_type($info) {
+  return isset($info['uuid']) && $info['uuid'] && empty($info['exportable']);
+}
+
+function _uuid_entity_features_component_entity_type($component) {
+  return substr($component, strlen('uuid_entity_'));
+}
+
+function uuid_entity_features_entities_settings() {
+  $entities_settings = variable_get('uuid_entity_features_entities', array());
+  foreach(uuid_entity_features_entities_entity_info() as $type => $info) {
+    $entities_settings[$type] =
+      (isset($entities_settings[$type]) ? $entities_settings[$type] : array()) + array(
+        'enabled' => FALSE,
+        'bundles' => array(),
+        'rebuild_behavior' => UUID_ENTITY_FEATURES_REBUILD_CREATE_ONLY,
+        //'properties' = module_invoke_all('uuid_entity_features_entity_excluded_prop
+      );
+  }
+  return $entities_settings;
+}
+
+/*
+define('UUID_ENTITY_FEATURES_ENTITY_PROPERTY_OBJECT', 0);
+define('UUID_ENTITY_FEATURES_ENTITY_PROPERTY_METADATA_WRAPPER', 0);
+function uuid_entity_features_export_entity_object_properties_exclude($entity_type) {
+  if($entity_type === 'node') {
+    return array(
+      'translations',
+      'entity_translation_handler_id',
+      'rdf_mapping',
+      'created',
+      'changed',
+      'log',
+      'revision_timestamp',
+      'title_original',
+      'last_comment_timestamp',
+    );
+  }
+}
+*/
+
+/**
+ * Menu callback to configure module settings.
+ */
+function uuid_entity_features_settings_form($form, &$form_state) {
+  $entities_settings = uuid_entity_features_entities_settings();
+
+  $form['uuid_entity_features_entities'] = array(
+    '#tree' => TRUE,
+  );
+
+  //TODO: view filter
+
+  foreach (uuid_entity_features_entities_entity_info() as $type => $info) {
+    if(isset($info['uuid']) && $info['uuid']) {
+      $bundle_options = array();
+      foreach($info['bundles'] as $bundle => $bundle_info) {
+        $bundle_options[$bundle] = $bundle_info['label'];
+      }
+      $settings = $entities_settings[$type];
+      $form['uuid_entity_features_entities'][$type] = array(
+        '#title' => drupal_strtolower(str_replace(' ', '_', $info['label'])) === drupal_strtolower($type) ?
+          $info['label'] :
+          t('@label (@type)', array('@label' => $info['label'], '@type' => $type)),
+        '#type' => 'fieldset',
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+        '#description' => NULL, //TODO
+        '#tree' => TRUE,
+      );
+      $form['uuid_entity_features_entities'][$type]['enabled'] = array(
+        '#title' => t('Enable features component'), //Make exportable in features? Better title
+        '#type' => 'checkbox',
+        '#descritpion' => NULL, //TODO
+        '#default_value' => $settings['enabled'],
+      );
+      $form['uuid_entity_features_entities'][$type]['bundles'] = array(
+        '#type' => 'checkboxes',
+        '#title' => t('Exportable @label bundles', array('@label' => drupal_strtolower($info['label']))),
+        '#default_value' => $settings['bundles'],
+        '#options' => $bundle_options,
+      );
+      $form['uuid_entity_features_entities'][$type]['rebuild_behavior'] = array(
+        '#type' => 'radios',
+        '#title' => t('Rebuild behavior'),
+        '#description' => NULL, //TODO Not abour how
+        // different settings will effect "overriden" status etc
+        '#options' => array(
+          UUID_ENTITY_FEATURES_REBUILD_CREATE_ONLY => t('Create non existing entities only'),
+          UUID_ENTITY_FEATURES_REBUILD_UPDATE_NON_EMPTY => t('Update existing entities, excluding empty properties on exported entities'),
+          UUID_ENTITY_FEATURES_REBUILD_UPDATE => t('Update exising entites'),
+          UUID_ENTITY_FEATURES_REBUILD_REPLACE => t('Replace existing entities'),
+        ),
+        '#default_value' => $settings['rebuild_behavior'],
+      );
+      /*
+      $form['uuid_entity_features_entities'][$type]['properties'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Properties'),
+        '#description' => NULL, //TODO:
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+      );
+      */
+      //entity_get_property_info($type));
+      //entity_get_all_property_info
+      /*
+      foreach(entity_get_property_info($type) as $property => $property_info) {
+      }
+      */
+    }
+  }
+  return system_settings_form($form);
+}
+
+function uuid_entity_features_settings_form_validate($form, &$form_state) {
+  foreach($form_state['values']['uuid_entity_features_entities'] as $type => &$settings) {
+    $settings['bundles'] = array_filter($settings['bundles']);
+  }
+}

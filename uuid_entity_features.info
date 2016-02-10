@@ -1,0 +1,7 @@
+name = UUID Entity Features
+description = Provides features integration for entities supported by the UUID module
+core = 7.x
+dependencies[] = features
+dependencies[] = uuid
+dependencies[] = entity
+package = Features
