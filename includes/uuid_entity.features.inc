@@ -56,7 +56,6 @@ function uuid_entity_features_export($data, &$export, $module_name, $component) 
     $bundle_key = $entity_info['bundle keys']['bundle'];
   }
 
-  //$export['features'][$component] = $data;
   foreach($data as $uuid) {
     $export['features'][$component][$uuid] = $uuid;
   }
@@ -103,13 +102,6 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
   $info = entity_get_info($type);
   $output = array();
   $output[] = '  $items = array();';
-  //??
-  //
-  /*
-  $wtf = entity_get_uuid_by_id($type, $data);
-  dsm($type);
-  dsm($wtf);
-  */
 
   $ids = entity_get_id_by_uuid($type, $data);
   $ids_guids = array_flip($ids);
@@ -120,7 +112,6 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
   $module_key = $info['entity keys']['module'];
   $id_key = $info['entity keys']['id'];
 
-  //foreach (entity_load($type, array_values($ids)) as $id => $entity) {
   foreach (entity_uuid_load($type, $data) as $id => $entity) {
     $context = array(
       'module_name' => $module,
@@ -169,6 +160,8 @@ function uuid_entity_features_rebuild($module, $component) {
   $entities_settings = uuid_entity_features_entities_settings();
   $settings = $entities_settings[$type];
   $entities = features_get_default($component, $module);
+
+  try {
   if (!empty($entities)) {
     //TODO: First sync translations!
     $ids = entity_get_id_by_uuid($type, array_keys($entities));
@@ -183,7 +176,7 @@ function uuid_entity_features_rebuild($module, $component) {
         $ids = array();
       }
       else {
-        $stored_entities = entity_load($type, array_values($ids));
+        $stored_entities = entity_uuid_load($type, array_keys($entities));
       }
     }
     $fields_info = field_info_fields();
@@ -242,13 +235,18 @@ function uuid_entity_features_rebuild($module, $component) {
             }
           }
           //Update
-          entity_save($type, $stored_entity);
+          entity_uuid_save($type, $stored_entity);
         }
       }
       else {
         //Create
-        entity_save($type, $entity);
+        entity_uuid_save($type, $entity);
       }
     }
+  }
+  }
+  catch(Exception $e) {
+    dsm('horrible error');
+    dsm($e->getMessage());
   }
 }

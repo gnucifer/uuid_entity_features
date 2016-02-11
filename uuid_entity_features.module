@@ -61,10 +61,14 @@ function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &
   static $processed_node_uuids = array();
   $node_uuids = array_diff($context['data'], $processed_node_uuids);
   if(!empty($node_uuids)) {
+    $settings = uuid_entity_features_entities_settings();
     $ids = entity_get_id_by_uuid('node', $node_uuids);
     $nodes = entity_load('node', $ids);
     if(module_exists('entity_menu_links')) {
       foreach($nodes as $node) {
+        //Clone node object so that menu object will not
+        //be included in export, or committed to entity cache
+        $node = clone $node;
         menu_node_prepare($node);
         //Or collect mlids and load multiple?
         if(!empty($node->menu['mlid'])) {
@@ -77,15 +81,15 @@ function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &
           }
           $uuids = entity_get_uuid_by_id('menu_link', $mlids);
           $menu_links = entity_uuid_load('menu_link', $uuids);
-          //Entity wrapper?
           foreach($menu_links as $mlid => $menu_link) {
             $pipe['uuid_entity_menu_link'][$menu_link->uuid] = $menu_link->uuid;
-            if($menu_link->path == 'node/%') {
-              list(, $node_uuid) = explode('/', $menu_link->link_path);
-              //TODO: Do not add self! Or will features take care of this?
+            $linked_entity = entity_menu_links_linked_entity($menu_link, TRUE);
+            if(!empty($linked_entity) && $settings[$linked_entity['type']]['enabled']) {
               if($mlid != $node->menu['mlid']) {
-                $pipe['uuid_entity_node'][$node_uuid] = $node_uuid;
-                $processed_node_uuids[] = $node_uuid;
+                $pipe["uuid_entity_{$linked_entity['type']}"][$linked_entity['uuid']] = $linked_entity['uuid'];
+                if($linked_entity['type'] === 'node') {
+                  $processed_node_uuids[] = $linked_entity['uuid'];
+                }
               }
             }
           }
