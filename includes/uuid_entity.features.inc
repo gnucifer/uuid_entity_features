@@ -62,8 +62,8 @@ function uuid_entity_features_export($data, &$export, $module_name, $component) 
   }
 
   $ids = entity_get_id_by_uuid($type, $data);
-
-  foreach (entity_load($type, array_values($ids)) as $id => $entity) {
+  $entities = entity_load($type, $ids);
+  foreach ($entities as $id => $entity) {
     // If this is a bundle of a fieldable entity, add its fields to the pipe.
     if (!empty($info['bundle of'])) {
       //TODO: what about fields on current entity?
@@ -82,14 +82,14 @@ function uuid_entity_features_export($data, &$export, $module_name, $component) 
     $export['dependencies']['entity'] = 'entity';
   }
   $context = array(
-    'pipe' => &$pipe,
+    'data' => $data,
     'module_name' => $module_name,
     'component' => $component,
   );
   drupal_alter(
     array('uuid_entity_features_export', 'uuid_entity_features_' . $type . '_export'),
-    $data,
     $export,
+    $pipe,
     $context
   );
   return $pipe;
