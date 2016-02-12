@@ -39,10 +39,18 @@ function uuid_entity_features_features_api() {
         'default_file' => FEATURES_DEFAULTS_INCLUDED,
         'file' => drupal_get_path('module', 'uuid_entity_features') . '/includes/uuid_entity.features.inc',
         'base' => 'uuid_entity',
+        //TODO: Provide hook to set weight depending entity type?
+        //Rebuild menu_links last since otherwise might link
+        //to not yet rebuilt (locally stored) entities
+        'weight' => $type === 'menu_link' ? 10 : 0,
       );
     }
   }
-  return array_reverse($components, TRUE);
+  return $components;
+}
+
+function _uuid_entity_feature_component($component_name) {
+  return strpos($component_name, 'uuid_entity_') === 0;
 }
 
 function uuid_entity_features_uuid_entity_features_export_render_node_entity_alter($node, $context) {
