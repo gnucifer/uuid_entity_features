@@ -85,6 +85,7 @@ function uuid_entity_features_export($data, &$export, $module_name, $component) 
     'module_name' => $module_name,
     'component' => $component,
   );
+  //TODO: pipe and export alter already exist, no need to provide own alter?
   drupal_alter(
     array('uuid_entity_features_export', 'uuid_entity_features_' . $type . '_export'),
     $export,
@@ -112,12 +113,14 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
   $module_key = $info['entity keys']['module'];
   $id_key = $info['entity keys']['id'];
 
+  $context = array(
+    'module_name' => $module,
+    'export' => $export,
+    'component' => $component,
+    'entity_type' => $type,
+  );
+
   foreach (entity_uuid_load($type, $data) as $id => $entity) {
-    $context = array(
-      'module_name' => $module,
-      'export' => $export,
-      'component' => $component,
-    );
     drupal_alter(
       array(
         'uuid_entity_features_export_render_entity',
@@ -151,6 +154,7 @@ function uuid_entity_features_revert($module, $component) {
   uuid_entity_features_rebuild($module, $component);
 }
 
+
 /**
  * Implements hook_features_rebuild().
  * Rebuilds entitys based on UUID from code defaults.
@@ -161,7 +165,21 @@ function uuid_entity_features_rebuild($module, $component) {
   $settings = $entities_settings[$type];
   $entities = features_get_default($component, $module);
 
-  try {
+  //TODO: Why not use default features hook, difference?
+  $context = array(
+    'module_name' => $module,
+    'component' => $component,
+    'entity_type' => $type,
+  );
+  drupal_alter(
+    array(
+      'uuid_entity_features_rebuild_entities',
+      'uuid_entity_features_rebuild_' . $type . '_entities',
+    ),
+    $entities,
+    $context
+  );
+
   if (!empty($entities)) {
     //TODO: First sync translations!
     $ids = entity_get_id_by_uuid($type, array_keys($entities));
@@ -180,6 +198,10 @@ function uuid_entity_features_rebuild($module, $component) {
       }
     }
     $fields_info = field_info_fields();
+
+    //alter? yes
+    //drupal_alter!!!
+    //TODO: here we can excude invalid entities on import
     foreach($entities as $uuid => $entity) {
       if(
         isset($ids[$uuid]) &&
@@ -243,10 +265,5 @@ function uuid_entity_features_rebuild($module, $component) {
         entity_uuid_save($type, $entity);
       }
     }
-  }
-  }
-  catch(Exception $e) {
-    dsm('horrible error');
-    dsm($e->getMessage());
   }
 }

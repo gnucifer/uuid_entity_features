@@ -42,7 +42,7 @@ function uuid_entity_features_features_api() {
       );
     }
   }
-  return $components;
+  return array_reverse($components, TRUE);
 }
 
 function uuid_entity_features_uuid_entity_features_export_render_node_entity_alter($node, $context) {
@@ -83,6 +83,11 @@ function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &
           $menu_links = entity_uuid_load('menu_link', $uuids);
           foreach($menu_links as $mlid => $menu_link) {
             $pipe['uuid_entity_menu_link'][$menu_link->uuid] = $menu_link->uuid;
+            if(!isset($menu_link->mlid)) {
+              //entity_menu_links_linked_entity will try to access mlid
+              //set to null so PHP doesn't complain
+              $menu_link->mlid = NULL;
+            }
             $linked_entity = entity_menu_links_linked_entity($menu_link, TRUE);
             if(!empty($linked_entity) && $settings[$linked_entity['type']]['enabled']) {
               if($mlid != $node->menu['mlid']) {
@@ -101,17 +106,53 @@ function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &
 
 
 function uuid_entity_features_uuid_entity_features_export_render_menu_link_entity_alter($menu_link, $context) {
-  /*
-  foreach(range(1, 9) as $n) {
-    unset($menu_link->{"p$n"});
-  }
-  */
   unset($menu_link->weight); //?
   unset($menu_link->timestamp);
   //unset($menu_link->has_children);
   unset($menu_link->i18n_tsid);
   unset($menu_link->rdf_mapping);
-  //TODO: Consequences of unsetting page_callback, page_arguments etc?
+}
+
+/**
+ * Implements hook_uuid_entity_default_menu_link_alter()
+ */
+/*
+function uuid_entity_features_uuid_entity_default_menu_link_alter(&$menu_links) {
+}
+ */
+function uuid_entity_features_uuid_entity_features_rebuild_menu_link_entities_alter(&$menu_links, $context) {
+  $entities_by_type = array();
+  $entities_menu_links = array();
+  foreach($menu_links as $uuid => $menu_link) {
+    $linked_entity = entity_menu_links_linked_entity($menu_link, TRUE);
+    if(!empty($linked_entity)) {
+      $entities_menu_links[$linked_entity['uuid']][] = $uuid;
+      $entities_by_type[$linked_entity['type']][] = $linked_entity['uuid'];
+    }
+  }
+  $missing_uuids = array();
+  foreach($entities_by_type as $type => $uuids) {
+    $ids = entity_get_id_by_uuid($type, $uuids);
+    $missing_uuids = array_diff($uuids, array_flip($ids));
+  }
+  foreach($missing_uuids as $uuid) {
+    foreach($entities_menu_links[$uuid] as $menu_link_uuid) {
+      //TODO: also print module, component etc?
+      $menu_link_wrapper = entity_metadata_wrapper('menu_link', $menu_links[$menu_link_uuid]);
+      drupal_set_message(
+        t(
+          'Menu link "@label" (uuid: @uuid) could not be rebuilt because the linked entity (uuid: @entity_uuid) is missing.',
+          array(
+            '@label' => $menu_link_wrapper->label(),
+            '@uuid' => $menu_link_uuid,
+            '@entity_uuid' => $uuid,
+          )
+        ),
+        'warning'
+      );
+      unset($menu_links[$menu_link_uuid]);
+    }
+  }
 }
 
 function uuid_entity_features_init() {
