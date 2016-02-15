@@ -170,6 +170,7 @@ function uuid_entity_features_init() {
 function uuid_entity_features_entities_entity_info() {
   return array_filter(entity_get_info(), '_uuid_entity_features_compatible_entity_type');
 }
+
 //TODO: refactor?
 function _uuid_entity_features_compatible_entity_type($info) {
   return isset($info['uuid']) && $info['uuid'] && empty($info['exportable']);
@@ -227,7 +228,10 @@ function uuid_entity_features_settings_form($form, &$form_state) {
   foreach (uuid_entity_features_entities_entity_info() as $type => $info) {
     if(isset($info['uuid']) && $info['uuid']) {
       $bundle_options = array();
-      if(!empty($info['bundles'])) {
+      if(
+        !empty($info['entity keys']['bundle']) &&
+        !empty($info['bundles'])
+      ) {
         foreach($info['bundles'] as $bundle => $bundle_info) {
           $bundle_options[$bundle] = $bundle_info['label'];
         }
