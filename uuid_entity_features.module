@@ -227,8 +227,10 @@ function uuid_entity_features_settings_form($form, &$form_state) {
   foreach (uuid_entity_features_entities_entity_info() as $type => $info) {
     if(isset($info['uuid']) && $info['uuid']) {
       $bundle_options = array();
-      foreach($info['bundles'] as $bundle => $bundle_info) {
-        $bundle_options[$bundle] = $bundle_info['label'];
+      if(!empty($info['bundles'])) {
+        foreach($info['bundles'] as $bundle => $bundle_info) {
+          $bundle_options[$bundle] = $bundle_info['label'];
+        }
       }
       $settings = $entities_settings[$type];
       $form['uuid_entity_features_entities'][$type] = array(
@@ -247,12 +249,14 @@ function uuid_entity_features_settings_form($form, &$form_state) {
         '#descritpion' => NULL, //TODO
         '#default_value' => $settings['enabled'],
       );
-      $form['uuid_entity_features_entities'][$type]['bundles'] = array(
-        '#type' => 'checkboxes',
-        '#title' => t('Exportable @label bundles', array('@label' => drupal_strtolower($info['label']))),
-        '#default_value' => $settings['bundles'],
-        '#options' => $bundle_options,
-      );
+      if(!empty($bundle_options)) {
+        $form['uuid_entity_features_entities'][$type]['bundles'] = array(
+          '#type' => 'checkboxes',
+          '#title' => t('Exportable @label bundles', array('@label' => drupal_strtolower($info['label']))),
+          '#default_value' => $settings['bundles'],
+          '#options' => $bundle_options,
+        );
+      }
       $form['uuid_entity_features_entities'][$type]['rebuild_behavior'] = array(
         '#type' => 'radios',
         '#title' => t('Rebuild behavior'),
