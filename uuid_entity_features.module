@@ -72,7 +72,7 @@ function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &
     $settings = uuid_entity_features_entities_settings();
     $ids = entity_get_id_by_uuid('node', $node_uuids);
     $nodes = entity_load('node', $ids);
-    if(module_exists('entity_menu_links')) {
+    if(module_exists('entity_menu_links') && FALSE) {
       foreach($nodes as $node) {
         //Clone node object so that menu object will not
         //be included in export, or committed to entity cache
@@ -80,13 +80,7 @@ function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &
         menu_node_prepare($node);
         //Or collect mlids and load multiple?
         if(!empty($node->menu['mlid'])) {
-          $mlids = array();
-          foreach(range(1, 9) as $n) {
-            if(empty($node->menu["p$n"])) {
-              break;
-            }
-            $mlids[] = $node->menu["p$n"];
-          }
+          $mlids = _uuid_entity_features_menu_link_plids($node->menu);
           $uuids = entity_get_uuid_by_id('menu_link', $mlids);
           $menu_links = entity_uuid_load('menu_link', $uuids);
           foreach($menu_links as $mlid => $menu_link) {
@@ -112,6 +106,41 @@ function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &
   }
 }
 
+function _uuid_entity_features_menu_link_entity($menu_link) {
+  if(!isset($menu_link->mlid)) {
+    //entity_menu_links_linked_entity will try to access mlid
+    //set to null so PHP doesn't complain
+    $menu_link->mlid = NULL;
+  }
+  return entity_menu_links_linked_entity($menu_link, TRUE);
+}
+
+//Option to exclude self?
+function _uuid_entity_features_menu_link_plids($menu_link) {
+  $mlids = array();
+  $menu_link = (object) $menu_link;
+  foreach(range(1, MENU_MAX_DEPTH) as $n) {
+    if(empty($menu_link->{"p$n"})) {
+      break;
+    }
+    $mlids[] = $menu_link->{"p$n"};
+  }
+  return $mlids;
+}
+
+function uuid_entity_features_uuid_entity_features_menu_link_export_alter(&$export, &$pipe, $context) {
+  $menu_links = entity_uuid_load('menu_link', $context['data']);
+  $settings = uuid_entity_features_entities_settings();
+  foreach($menu_links as $menu_link) {
+    $linked_entity = _uuid_entity_features_menu_link_entity($menu_link);
+    if(!empty($linked_entity) && $settings[$linked_entity['type']]['enabled']) {
+      $pipe["uuid_entity_{$linked_entity['type']}"][$linked_entity['uuid']] = $linked_entity['uuid'];
+    }
+    foreach(_uuid_entity_features_menu_link_plids($menu_link) as $menu_link_uuid) {
+      $pipe['uuid_entity_menu_link'][$menu_link_uuid] = $menu_link_uuid;
+    }
+  }
+}
 
 function uuid_entity_features_uuid_entity_features_export_render_menu_link_entity_alter($menu_link, $context) {
   unset($menu_link->weight); //?

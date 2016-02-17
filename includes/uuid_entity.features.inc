@@ -59,13 +59,19 @@ function uuid_entity_features_export($data, &$export, $module_name, $component) 
   foreach($data as $uuid) {
     $export['features'][$component][$uuid] = $uuid;
   }
-
-  $ids = entity_get_id_by_uuid($type, $data);
-  $entities = entity_load($type, $ids);
-  foreach ($entities as $id => $entity) {
+  //TODO: why not entity_uuid_load?
+  //$ids = entity_get_id_by_uuid($type, $data);
+  //$entities = entity_load($type, $ids);
+  //TODO: use dependancy api when gathering menu item deps?
+  $entities = entity_uuid_load($type, $data);
+  if($component == 'uuid_entity_menu_link') {
+    $ids = entity_get_id_by_uuid($type, $data);
+    entity_load($type, $ids);
+  }
+  foreach ($entities as $entity) {
     // If this is a bundle of a fieldable entity, add its fields to the pipe.
     if (!empty($info['bundle of'])) {
-      //TODO: what about fields on current entity?
+      //TODO: what about fields on current entity bundle?
       $fields = field_info_instances($info['bundle of'], $entity->{$bundle_key});
       foreach ($fields as $name => $field) {
         $pipe['field'][] = "{$field['entity_type']}-{$field['bundle']}-{$field['field_name']}";
