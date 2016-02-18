@@ -45,6 +45,8 @@ function uuid_entity_features_export_options($component) {
 function uuid_entity_features_export($data, &$export, $module_name, $component) {
   $pipe = array();
   $export['dependencies']['uuid_entity_features'] = 'uuid_entity_features';
+  $pipe['variable'][] = 'uuid_entity_features_entities';
+
   $type = _uuid_entity_features_component_entity_type($component);
   $info = entity_get_info($type);
   $info['entity keys'] += array('module' => 'module', 'status' => 'status');
@@ -135,6 +137,7 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
       $entity,
       $context
     );
+
     $export  = "  \$items['{$ids_guids[$id]}'] = entity_create('{$type}', ";
     $vars = get_object_vars($entity);
     //TODO: do not need to unset id and revision id?

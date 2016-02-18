@@ -143,11 +143,15 @@ function uuid_entity_features_uuid_entity_features_menu_link_export_alter(&$expo
 }
 
 function uuid_entity_features_uuid_entity_features_export_render_menu_link_entity_alter($menu_link, $context) {
-  unset($menu_link->weight); //?
   unset($menu_link->timestamp);
-  //unset($menu_link->has_children);
   unset($menu_link->i18n_tsid);
   unset($menu_link->rdf_mapping);
+  unset($menu_link->localized_options);
+  unset($menu_link->href);
+  $schema = drupal_get_schema('menu_router');
+  foreach(array_keys($schema['fields']) as $router_property) {
+    unset($menu_link->{$router_property});
+  }
 }
 
 /**
