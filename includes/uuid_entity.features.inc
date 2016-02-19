@@ -200,6 +200,11 @@ function uuid_entity_features_rebuild($module, $component) {
         $settings['rebuild_behavior'] == UUID_ENTITY_FEATURES_REBUILD_REPLACE
       ) {
         entity_delete_multiple($type, array_values($ids));
+        //TODO: Could uuid module take care of cache invalidation on entity
+        //delete hook or similar?
+        $cache = &drupal_static('entity_uuid_id_cache', array());
+        //TODO: Granular unset per guid?
+        unset($cache[$type]);
         $ids = array();
       }
       else {
