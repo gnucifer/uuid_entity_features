@@ -145,7 +145,7 @@ function uuid_entity_features_export_render($module, $data, $export, $component)
     if(!empty($info['entity keys']['revision'])) {
       unset($vars[$info['entity keys']['revision']]);
     }
-    $export .= features_var_export($vars, ' ');
+    $export .= features_var_export($vars, '  ');
     $export .= ");";
 
     $output[] = $export;
@@ -230,6 +230,26 @@ function uuid_entity_features_rebuild($module, $component) {
           $wrapped_stored_entity = entity_metadata_wrapper($type, $stored_entities[$ids[$uuid]]);
           $field_info_instances = field_info_instances($type, $wrapped_entity->getBundle());
 
+          foreach (get_object_vars($entity) as $property => $value) {
+            //Special handling for fields
+            if (
+              isset($field_info_instances[$property]) &&
+              $settings['rebuild_behavior'] == UUID_ENTITY_FEATURES_REBUILD_UPDATE_NON_EMPTY
+            ) {
+              $value = $entity->{$property};
+              foreach ($value as $lang => $items) {
+                $value[$lang] = _field_filter_items($fields_info[$property], $items);
+              }
+              if (!empty($value)) {
+                $stored_entity->{$property} = $value + $stored_entity->{$property};
+              }
+            }
+            elseif (isset($stored_entity->{$property})) {
+              $stored_entity->{$property} = $value;
+            }
+          }
+
+          /*
           foreach($wrapped_entity->getPropertyInfo() as $property => $info) {
             if(isset($info['field']) && $info['field']) {
               if(isset($field_info_instances[$property])) {
@@ -270,6 +290,7 @@ function uuid_entity_features_rebuild($module, $component) {
               }
             }
           }
+          */
           //Update
           entity_uuid_save($type, $stored_entity);
         }

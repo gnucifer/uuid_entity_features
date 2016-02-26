@@ -63,6 +63,7 @@ function uuid_entity_features_uuid_entity_features_export_render_node_entity_alt
   unset($node->revision_timestamp);
   unset($node->title_original);
   unset($node->last_comment_timestamp);
+  //node->data??
 }
 
 function uuid_entity_features_uuid_entity_features_node_export_alter(&$export, &$pipe, $context) {
