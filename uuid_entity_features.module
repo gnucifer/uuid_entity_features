@@ -324,13 +324,17 @@ function uuid_entity_features_settings_form($form, &$form_state) {
       */
     }
   }
-
   //TODO: empty features cache if new enabled!
   return system_settings_form($form);
 }
 
 function uuid_entity_features_settings_form_validate($form, &$form_state) {
   foreach($form_state['values']['uuid_entity_features_entities'] as $type => &$settings) {
-    $settings['bundles'] = array_filter($settings['bundles']);
+    if(isset($settings['bundles'])) {
+      $settings['bundles'] = array_filter($settings['bundles']);
+    }
+    else {
+      $settings['bundles'] = array();
+    }
   }
 }
