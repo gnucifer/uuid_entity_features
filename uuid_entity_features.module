@@ -54,7 +54,6 @@ function _uuid_entity_feature_component($component_name) {
 }
 
 function uuid_entity_features_uuid_entity_features_export_render_node_entity_alter($node, $context) {
-  unset($node->translations);
   unset($node->entity_translation_handler_id);
   unset($node->rdf_mapping);
   unset($node->created);
@@ -139,6 +138,31 @@ function uuid_entity_features_uuid_entity_features_menu_link_export_alter(&$expo
     }
     foreach(_uuid_entity_features_menu_link_plids($menu_link) as $menu_link_uuid) {
       $pipe['uuid_entity_menu_link'][$menu_link_uuid] = $menu_link_uuid;
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_uuid_load().
+ */
+function uuid_entity_features_entity_uuid_load(&$entities, $entity_type) {
+  //Implement hook_entity_uuid_load on behalf of entity_transaltion_module
+  if (module_exists('entity_translation')) {
+    foreach ($entities as $entity) {
+      if (entity_translation_enabled($entity_type, $entity)) {
+        //TODO: possible set uid to user uuid?
+        //TODO: How handle revisions?
+        $fields = array('entity_type', 'entity_id', 'revision_id', 'uid', 'created', 'changed');
+        $handler = entity_translation_get_handler($entity_type, $entity);
+        $translations = $handler->getTranslations();
+        if ($translations && isset($translations->data)) {
+          foreach ($translations->data as &$translation) {
+            foreach ($fields as $field) {
+              unset($translation[$field]);
+            }
+          }
+        }
+      }
     }
   }
 }
