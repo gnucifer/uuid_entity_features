@@ -10,7 +10,7 @@
 function uuid_entity_features_export_options($component) {
   $options = array();
   $type = _uuid_entity_features_component_entity_type($component);
-  $entities_settings = variable_get('uuid_entity_features_entities', array());
+  $entities_settings = uuid_entity_features_entities_settings();
   if (
     isset($entities_settings[$type]) &&
     !empty($entities_settings[$type]['enabled'])

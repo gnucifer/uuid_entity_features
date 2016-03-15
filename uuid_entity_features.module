@@ -362,4 +362,7 @@ function uuid_entity_features_settings_form_validate($form, &$form_state) {
       $settings['bundles'] = array();
     }
   }
+  //TODO: this is overkill, possible to clear more selectively?
+  //we need to clear cached data collected by hook_features_api()
+  drupal_flush_all_caches();
 }
