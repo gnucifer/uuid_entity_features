@@ -157,14 +157,16 @@ function uuid_entity_features_entity_uuid_load(&$entities, $entity_type) {
 
   if (module_exists('entity_translation')) {
     if(module_exists('title')) {
-      foreach($entities as $entity) {
-        $entity_langcode = title_entity_language($entity_type, $entity);
-        if($entity_langcode !== title_active_language()) {
-          title_entity_sync($entity_type, $entity, $entity_langcode);
-          $fr_info = title_field_replacement_info($entity_type);
-          //Unset {$legacy_field}_original property
-          foreach(array_keys($fr_info) as $legacy_field) {
-            unset($entity->{$legacy_field . '_original'});
+      $fr_info = title_field_replacement_info($entity_type);
+      if(!empty($fr_info)) {
+        foreach($entities as $entity) {
+          $entity_langcode = title_entity_language($entity_type, $entity);
+          if($entity_langcode !== title_active_language()) {
+            title_entity_sync($entity_type, $entity, $entity_langcode);
+            //Unset {$legacy_field}_original property
+            foreach(array_keys($fr_info) as $legacy_field) {
+              unset($entity->{$legacy_field . '_original'});
+            }
           }
         }
       }
