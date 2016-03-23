@@ -175,16 +175,6 @@ function uuid_entity_features_entity_uuid_load(&$entities, $entity_type) {
       if (entity_translation_enabled($entity_type, $entity)) {
         //TODO: possible set uid to user uuid?
         //TODO: How handle revisions?
-        list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-        if($bundle == 'ttx_group') {
-          $entity->translations->original = 'und';
-          $new_data = array();
-          foreach($entity->translations->data as $t) {
-            $t['language'] = 'und';
-            $new_data['und'] = $t;
-          }
-          $entity->translations->data = $new_data;
-        }
         $fields = array('entity_type', 'entity_id', 'revision_id', 'uid', 'created', 'changed');
         $handler = entity_translation_get_handler($entity_type, $entity);
         $translations = $handler->getTranslations();
