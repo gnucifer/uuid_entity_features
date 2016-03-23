@@ -20,7 +20,11 @@ function uuid_entity_features_export_options($component) {
     if(!empty($entities_settings[$type]['bundles'])) {
       $query->entityCondition('bundle', array_filter($entities_settings[$type]['bundles']));
       //TODO: order by bundle
+      //$query->entityOrderBy('bundle');
     }
+    //TODO: is this really generic for all entity types?
+    // probably not
+    //$query->propertyOrderBy('uuid');
     $results = $query->execute();
     if (isset($results[$type])) {
       $entities = entity_load($type, array_keys($results[$type]));
