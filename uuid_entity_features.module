@@ -54,7 +54,6 @@ function _uuid_entity_feature_component($component_name) {
 }
 
 function uuid_entity_features_uuid_entity_features_export_render_node_entity_alter($node, $context) {
-  unset($node->entity_translation_handler_id);
   unset($node->rdf_mapping);
   unset($node->created);
   unset($node->changed);
@@ -147,11 +146,38 @@ function uuid_entity_features_uuid_entity_features_menu_link_export_alter(&$expo
  */
 function uuid_entity_features_entity_uuid_load(&$entities, $entity_type) {
   //Implement hook_entity_uuid_load on behalf of entity_transaltion_module
+  foreach($entities as $entity) {
+    //property_exists?
+    foreach(array('rdf_mapping') as $property) {
+      if(property_exists($entity, $property)) {
+        unset($entity->{$property});
+      }
+    }
+  }
+
   if (module_exists('entity_translation')) {
+    if(module_exists('title')) {
+      foreach($entities as $entity) {
+        $entity_langcode = title_entity_language($entity_type, $entity);
+        if($entity_langcode !== title_active_language()) {
+          title_entity_sync($entity_type, $entity, $entity_langcode);
+        }
+      }
+    }
     foreach ($entities as $entity) {
       if (entity_translation_enabled($entity_type, $entity)) {
         //TODO: possible set uid to user uuid?
         //TODO: How handle revisions?
+        list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+        if($bundle == 'ttx_group') {
+          $entity->translations->original = 'und';
+          $new_data = array();
+          foreach($entity->translations->data as $t) {
+            $t['language'] = 'und';
+            $new_data['und'] = $t;
+          }
+          $entity->translations->data = $new_data;
+        }
         $fields = array('entity_type', 'entity_id', 'revision_id', 'uid', 'created', 'changed');
         $handler = entity_translation_get_handler($entity_type, $entity);
         $translations = $handler->getTranslations();
@@ -162,6 +188,7 @@ function uuid_entity_features_entity_uuid_load(&$entities, $entity_type) {
             }
           }
         }
+        unset($entity->entity_translation_handler_id);
       }
     }
   }
